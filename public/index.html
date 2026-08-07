@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What Song Is This?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0A0A0F;
+      --surface:   #13131F;
+      --surface2:  #1C1C2E;
+      --accent:    #7C3AED;
+      --accent-l:  #A78BFA;
+      --accent-gl: rgba(124,58,237,0.15);
+      --text:      #F0F0FF;
+      --muted:     #6B7280;
+      --border:    rgba(167,139,250,0.12);
+      --radius:    16px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Ambient orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+    }
+    .orb-1 { width: 500px; height: 500px; background: #4C1D95; top: -120px; left: -100px; }
+    .orb-2 { width: 350px; height: 350px; background: #1E1B4B; bottom: 0; right: -80px; }
+
+    /* ── Layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #F0F0FF 30%, #A78BFA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      letter-spacing: 0.01em;
+    }
+    .tg-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 7px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent-l);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .tg-link:hover { background: var(--accent-gl); border-color: var(--accent); }
+    .tg-link svg { flex-shrink: 0; }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 14px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .tab-btn.active {
+      color: var(--accent-l);
+      background: var(--accent-gl);
+    }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; padding: 28px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-gl);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .drop-icon {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .drop-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .drop-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .file-name {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--accent-l);
+      display: none;
+    }
+
+    /* ── Waveform ── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 40px;
+      margin: 18px 0;
+    }
+    .wave-bar {
+      width: 4px;
+      background: var(--accent);
+      border-radius: 2px;
+      height: 8px;
+      transition: height 0.1s;
+    }
+    .waveform.active .wave-bar {
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(1)  { animation-delay: 0s; }
+    .wave-bar:nth-child(2)  { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3)  { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4)  { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5)  { animation-delay: 0.15s; }
+    .wave-bar:nth-child(6)  { animation-delay: 0.05s; }
+    .wave-bar:nth-child(7)  { animation-delay: 0.25s; }
+    .wave-bar:nth-child(8)  { animation-delay: 0.35s; }
+    .wave-bar:nth-child(9)  { animation-delay: 0.1s; }
+    .wave-bar:nth-child(10) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(11) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(12) { animation-delay: 0.0s; }
+
+    @keyframes pulse {
+      0%, 100% { height: 6px; opacity: 0.4; }
+      50% { height: 32px; opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .wave-bar { animation: none !important; }
+    }
+
+    /* ── URL input ── */
+    .url-input-wrap {
+      position: relative;
+    }
+    .url-input-wrap input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .url-input-wrap input::placeholder { color: var(--muted); }
+    .url-input-wrap input:focus { border-color: var(--accent); }
+    .url-hint {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* ── API key ── */
+    .api-key-wrap {
+      margin-top: 18px;
+    }
+    .api-key-label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .api-key-row {
+      display: flex;
+      gap: 8px;
+    }
+    .api-key-row input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .api-key-row input::placeholder { color: var(--muted); }
+    .api-key-row input:focus { border-color: var(--accent); }
+
+    /* ── Button ── */
+    .btn {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.1s, opacity 0.2s;
+    }
+    .btn:hover:not(:disabled) { background: #6D28D9; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Status ── */
+    .status {
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: none;
+    }
+    .status.loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-gl);
+      color: var(--accent-l);
+      border: 1px solid rgba(124,58,237,0.25);
+    }
+    .status.error {
+      display: block;
+      background: rgba(239,68,68,0.1);
+      color: #FCA5A5;
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: var(--accent-l);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result ── */
+    .result {
+      margin-top: 28px;
+      display: none;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .result.visible { display: block; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .result-top {
+      display: flex;
+      gap: 16px;
+      padding: 20px;
+    }
+    .cover {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .cover-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+    .result-meta { flex: 1; min-width: 0; }
+    .result-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .result-artist {
+      font-size: 0.88rem;
+      color: var(--accent-l);
+      font-weight: 500;
+    }
+    .result-album {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-links {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 20px;
+      flex-wrap: wrap;
+    }
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .link-btn:hover { opacity: 0.85; }
+    .link-btn:active { transform: scale(0.97); }
+    .link-spotify { background: #1DB954; color: #fff; }
+    .link-youtube { background: #FF0000; color: #fff; }
+
+    /* ── Lyrics ── */
+    .lyrics-section {
+      border-top: 1px solid var(--border);
+    }
+    .lyrics-toggle {
+      width: 100%;
+      padding: 14px 20px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: color 0.2s;
+    }
+    .lyrics-toggle:hover { color: var(--text); }
+    .lyrics-toggle .arrow {
+      transition: transform 0.2s;
+      font-size: 0.7rem;
+    }
+    .lyrics-toggle.open .arrow { transform: rotate(180deg); }
+    .lyrics-body {
+      display: none;
+      padding: 0 20px 20px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+      line-height: 1.8;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .lyrics-body.open { display: block; }
+    .lyrics-body::-webkit-scrollbar { width: 4px; }
+    .lyrics-body::-webkit-scrollbar-track { background: transparent; }
+    .lyrics-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent-l); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .page { padding: 32px 14px 60px; }
+      .tab-panel { padding: 20px; }
+      .result-top { flex-direction: column; align-items: flex-start; }
+      .cover, .cover-placeholder { width: 64px; height: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="page">
+    <header>
+      <div class="logo">What Song Is This?</div>
+      <div class="tagline">Drop an audio file or paste a link — get the song in seconds.</div>
+      <a class="tg-link" href="https://t.me/whatissongbot" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
+        </svg>
+        Also available as a Telegram bot
+      </a>
+    </header>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="file">🎵 Audio File</button>
+        <button class="tab-btn" data-tab="url">🔗 From URL</button>
+      </div>
+
+      <!-- File tab -->
+      <div class="tab-panel active" id="tab-file">
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac,.webm,.opus" />
+          <span class="drop-icon">🎧</span>
+          <div class="drop-title">Drop your audio file here</div>
+          <div class="drop-sub">or click to browse · mp3, ogg, wav, m4a, flac…</div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+
+        <div class="waveform" id="waveformFile">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+
+        <div class="api-key-wrap">
+          <span class="api-key-label">API Key</span>
+          <div class="api-key-row">
+            <input type="password" id="apiKeyFile" placeholder="Enter your API key…" autocomplete="off" />
+          </div>
+        </div>
+
+        <button class="btn" id="btnFile">Identify Song</button>
+        <div class="status" id="statusFile">
+          <div class="spinner"></div>
+          <span>Listening to your audio…</span>
+        </div>
+        <div class="status error" id="errorFile"></div>
+      </div>
+
+      <!-- URL tab -->
+      <div class="tab-panel" id="tab-url">
+        <div class="url-input-wrap">
+          <input type="url" id="urlInput" placeholder="https://example.com/song.mp3" />
+        </div>
+        <div class="url-hint">⚠️ YouTube and Twitch links are not supported.</div>
+
+        <div class="waveform" id="waveformUrl">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+
+        <div class="api-key-wrap">
+          <span class="api-key-label">API Key</span>
+          <div class="api-key-row">
+            <input type="password" id="apiKeyUrl" placeholder="Enter your API key…" autocomplete="off" />
+          </div>
+        </div>
+
+        <button class="btn" id="btnUrl">Identify Song</button>
+        <div class="status" id="statusUrl">
+          <div class="spinner"></div>
+          <span>Analyzing audio from URL…</span>
+        </div>
+        <div class="status error" id="errorUrl"></div>
+      </div>
+    </div>
+
+    <!-- Result (shared) -->
+    <div class="result" id="result" style="width:100%;max-width:560px;">
+      <div class="result-card">
+        <div class="result-top">
+          <div id="coverWrap"></div>
+          <div class="result-meta">
+            <div class="result-title" id="resTitle"></div>
+            <div class="result-artist" id="resArtist"></div>
+            <div class="result-album" id="resAlbum"></div>
+          </div>
+        </div>
+        <div class="result-links" id="resLinks"></div>
+        <div class="lyrics-section" id="lyricsSection" style="display:none">
+          <button class="lyrics-toggle" id="lyricsToggle">
+            <span>📝 Show lyrics</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="lyrics-body" id="lyricsBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Powered by <a href="https://audd.io" target="_blank" rel="noopener">AudD</a> ·
+      <a href="https://t.me/whatissongbot" target="_blank" rel="noopener">Telegram Bot</a>
+    </footer>
+  </div>
+
+  <script>
+    // ── Tab switching ──
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        hideResult();
+      });
+    });
+
+    // ── Drag & Drop ──
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    let selectedFile = null;
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(f) {
+      selectedFile = f;
+      fileNameEl.textContent = f.name;
+      fileNameEl.style.display = 'block';
+    }
+
+    // ── Waveform helpers ──
+    function setWave(id, active) {
+      document.getElementById(id).classList.toggle('active', active);
+    }
+
+    // ── Status helpers ──
+    function showLoading(statusId, errorId) {
+      document.getElementById(statusId).className = 'status loading';
+      document.getElementById(errorId).style.display = 'none';
+      hideResult();
+    }
+    function showError(errorId, statusId, msg) {
+      document.getElementById(errorId).textContent = msg;
+      document.getElementById(errorId).style.display = 'block';
+      document.getElementById(statusId).className = 'status';
+    }
+    function clearStatus(statusId, errorId) {
+      document.getElementById(statusId).className = 'status';
+      document.getElementById(errorId).style.display = 'none';
+    }
+
+    // ── Result ──
+    function hideResult() {
+      document.getElementById('result').classList.remove('visible');
+    }
+    function showResult(data) {
+      document.getElementById('resTitle').textContent  = data.title  || 'Unknown';
+      document.getElementById('resArtist').textContent = data.artist || 'Unknown';
+      document.getElementById('resAlbum').textContent  = data.album  || '';
+
+      const coverWrap = document.getElementById('coverWrap');
+      if (data.cover_url) {
+        coverWrap.innerHTML = `<img class="cover" src="${data.cover_url}" alt="cover" loading="lazy" />`;
+      } else {
+        coverWrap.innerHTML = `<div class="cover-placeholder">🎵</div>`;
+      }
+
+      const links = document.getElementById('resLinks');
+      links.innerHTML = '';
+      if (data.spotify_url) {
+        links.innerHTML += `<a class="link-btn link-spotify" href="${data.spotify_url}" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Spotify</a>`;
+      }
+      if (data.youtube_url) {
+        links.innerHTML += `<a class="link-btn link-youtube" href="${data.youtube_url}" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          YouTube</a>`;
+      }
+
+      const lyricsSection = document.getElementById('lyricsSection');
+      const lyricsBody    = document.getElementById('lyricsBody');
+      const lyricsToggle  = document.getElementById('lyricsToggle');
+      if (data.lyrics) {
+        lyricsSection.style.display = 'block';
+        lyricsBody.textContent = data.lyrics;
+        lyricsBody.classList.remove('open');
+        lyricsToggle.classList.remove('open');
+        lyricsToggle.querySelector('span').textContent = '📝 Show lyrics';
+      } else {
+        lyricsSection.style.display = 'none';
+      }
+
+      document.getElementById('result').classList.add('visible');
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Lyrics toggle ──
+    document.getElementById('lyricsToggle').addEventListener('click', () => {
+      const body   = document.getElementById('lyricsBody');
+      const toggle = document.getElementById('lyricsToggle');
+      const isOpen = body.classList.toggle('open');
+      toggle.classList.toggle('open', isOpen);
+      toggle.querySelector('span').textContent = isOpen ? '📝 Hide lyrics' : '📝 Show lyrics';
+    });
+
+    // ── API base URL — same origin on Render ──
+    const API_BASE = window.location.origin;
+
+    // ── File submission ──
+    document.getElementById('btnFile').addEventListener('click', async () => {
+      const apiKey = document.getElementById('apiKeyFile').value.trim();
+      if (!selectedFile) { showError('errorFile', 'statusFile', 'Please select an audio file first.'); return; }
+
+      const btn = document.getElementById('btnFile');
+      btn.disabled = true;
+      showLoading('statusFile', 'errorFile');
+      setWave('waveformFile', true);
+
+      try {
+        const form = new FormData();
+        form.append('file', selectedFile);
+
+        const headers = {};
+        if (apiKey) headers['X-API-Key'] = apiKey;
+
+        const res = await fetch(`${API_BASE}/recognize`, { method: 'POST', headers, body: form });
+        const data = await res.json();
+
+        if (!res.ok) { throw new Error(data.error || `Error ${res.status}`); }
+        clearStatus('statusFile', 'errorFile');
+        showResult(data);
+      } catch (err) {
+        showError('errorFile', 'statusFile', err.message || 'Something went wrong. Try again!');
+      } finally {
+        btn.disabled = false;
+        setWave('waveformFile', false);
+      }
+    });
+
+    // ── URL submission ──
+    document.getElementById('btnUrl').addEventListener('click', async () => {
+      const url    = document.getElementById('urlInput').value.trim();
+      const apiKey = document.getElementById('apiKeyUrl').value.trim();
+      if (!url) { showError('errorUrl', 'statusUrl', 'Please enter a URL.'); return; }
+
+      const btn = document.getElementById('btnUrl');
+      btn.disabled = true;
+      showLoading('statusUrl', 'errorUrl');
+      setWave('waveformUrl', true);
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey) headers['X-API-Key'] = apiKey;
+
+        const res = await fetch(`${API_BASE}/recognize`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) { throw new Error(data.error || `Error ${res.status}`); }
+        clearStatus('statusUrl', 'errorUrl');
+        showResult(data);
+      } catch (err) {
+        showError('errorUrl', 'statusUrl', err.message || 'Something went wrong. Try again!');
+      } finally {
+        btn.disabled = false;
+        setWave('waveformUrl', false);
+      }
+    });
+
+    // ── Enter key shortcut ──
+    document.getElementById('urlInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btnUrl').click();
+    });
+  </script>
+</body>
+</html>
