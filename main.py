@@ -1,12 +1,12 @@
 """
-main.py — Jalankan Telegram bot + Flask API secara bersamaan.
-Bot berjalan di thread background dengan event loop sendiri.
-Flask di thread utama untuk Render health check.
+main.py — Flask di background thread, Telegram bot di main thread.
+run_polling() wajib di main thread karena butuh OS signal handler.
+Render health check tetap jalan karena Flask di thread terpisah.
 """
 import os
+import time
 import threading
 import logging
-import asyncio
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -18,32 +18,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_bot():
-    """Jalankan Telegram bot di thread terpisah dengan event loop sendiri."""
-    import bot as bot_module
-    # Python 3.10+ tidak punya current event loop di thread baru
-    # Harus buat loop baru secara eksplisit
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    logger.info("[MAIN] Starting Telegram bot thread dengan event loop baru...")
-    try:
-        bot_module.main()
-    except Exception as e:
-        logger.error(f"[MAIN] Bot thread error: {e}", exc_info=True)
-
-
 def run_api():
-    """Jalankan Flask API di thread utama."""
+    """Flask API di background thread."""
     from api import app
     port = int(os.environ.get("PORT", os.environ.get("API_PORT", 5000)))
-    logger.info(f"[MAIN] Starting Flask API on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    logger.info(f"[MAIN] Flask API starting on port {port}...")
+    # use_reloader=False wajib di thread non-main
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 
 if __name__ == "__main__":
-    # Telegram bot di background thread
-    bot_thread = threading.Thread(target=run_bot, daemon=True, name="telegram-bot")
-    bot_thread.start()
+    # 1. Start Flask di background thread
+    api_thread = threading.Thread(target=run_api, daemon=True, name="flask-api")
+    api_thread.start()
 
-    # Flask API di main thread
-    run_api()
+    # 2. Tunggu Flask benar-benar listening (Render health check butuh ini)
+    time.sleep(3)
+    logger.info("[MAIN] Flask API thread started, launching Telegram bot on main thread...")
+
+    # 3. Telegram bot di main thread — satu-satunya cara agar signal handler works
+    import bot as bot_module
+    bot_module.main()
