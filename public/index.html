@@ -531,6 +531,10 @@
           </div>
         </div>
         <div class="result-links" id="resLinks"></div>
+        <div id="previewSection" style="display:none; padding: 0 20px 16px;">
+          <div style="font-size:0.78rem; color:var(--muted); margin-bottom:6px;">🎵 Preview (30s via Deezer)</div>
+          <audio id="previewAudio" controls style="width:100%; height:36px; accent-color:var(--accent);"></audio>
+        </div>
         <div class="lyrics-section" id="lyricsSection" style="display:none">
           <button class="lyrics-toggle" id="lyricsToggle">
             <span>📝 Show lyrics</span>
@@ -618,6 +622,17 @@
         coverWrap.innerHTML = `<img class="cover" src="${data.cover_url}" alt="cover" loading="lazy" />`;
       } else {
         coverWrap.innerHTML = `<div class="cover-placeholder">🎵</div>`;
+      }
+
+      // Deezer preview player
+      const previewSection = document.getElementById('previewSection');
+      const previewAudio = document.getElementById('previewAudio');
+      if (data.preview_url) {
+        previewAudio.src = data.preview_url;
+        previewSection.style.display = 'block';
+      } else {
+        previewSection.style.display = 'none';
+        previewAudio.src = '';
       }
 
       const links = document.getElementById('resLinks');
