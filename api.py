@@ -244,6 +244,25 @@ def api_recognize():
                     pass
 
 
+@app.route("/preview", methods=["GET"])
+def api_preview():
+    if not check_origin():
+        return jsonify({"error": "Origin tidak diizinkan."}), 403
+    if not check_api_key():
+        return jsonify({"error": "API key tidak valid atau tidak ditemukan."}), 401
+
+    artist = request.args.get("artist", "").strip()
+    title  = request.args.get("title", "").strip()
+    if not artist or not title:
+        return jsonify({"error": "Parameter artist dan title diperlukan."}), 400
+
+    preview_url = get_deezer_preview(artist, title)
+    if not preview_url:
+        return jsonify({"preview_url": None}), 200
+
+    return jsonify({"preview_url": preview_url})
+
+
 @app.route("/health", methods=["GET"])
 @app.route("/api/health", methods=["GET"])
 def health():
