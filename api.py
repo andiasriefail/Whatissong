@@ -17,13 +17,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-API_PORT    = int(os.environ.get("PORT", os.environ.get("API_PORT", 5000)))
+API_PORT = int(os.environ.get("PORT", os.environ.get("API_PORT", 5000)))
 AUDD_API_KEYS = [
     os.environ.get("AUDD_API_KEY_1", ""),
     os.environ.get("AUDD_API_KEY_2", ""),
     os.environ.get("AUDD_API_KEY_3", ""),
 ]
 AUDD_API_KEYS = [k for k in AUDD_API_KEYS if k]
+
+# Hardcoded API key untuk testing
+VALID_API_KEYS = {"wuhavers-test-key-2024"}
 
 UNSUPPORTED_URLS = [
     r"(youtube\.com|youtu\.be)",
@@ -40,7 +43,22 @@ ALLOWED_ORIGINS = [
 ]
 
 app = Flask(__name__)
-CORS(app, origins=ALLOWED_ORIGINS, allow_headers=["Content-Type"], methods=["GET", "POST", "OPTIONS"])
+CORS(app, origins=ALLOWED_ORIGINS, allow_headers=["Content-Type", "X-API-Key"], methods=["GET", "POST", "OPTIONS"])
+
+
+def check_api_key():
+    """Cek API key dari header X-API-Key atau query param api_key."""
+    key = request.headers.get("X-API-Key") or request.args.get("api_key")
+    if not key or key not in VALID_API_KEYS:
+        return False
+    return True
+
+
+def check_origin():
+    """Cek apakah request dari domain yang diizinkan."""
+    origin = request.headers.get("Origin") or request.headers.get("Referer", "")
+    allowed = any(origin.startswith(o) for o in ALLOWED_ORIGINS)
+    return allowed
 
 
 def is_unsupported_url(url):
@@ -148,19 +166,27 @@ def build_result_payload(result):
     artist = result.get("artist", "Unknown")
     album  = result.get("album", "")
     return {
-        "title":        title,
-        "artist":       artist,
-        "album":        album,
-        "cover_url":    get_cover_url(result),
-        "spotify_url":  get_spotify_url(result),
-        "youtube_url":  get_youtube_search(artist, title),
-        "lyrics":       get_lyrics(artist, title),
-        "preview_url":  get_deezer_preview(artist, title),
+        "title":       title,
+        "artist":      artist,
+        "album":       album,
+        "cover_url":   get_cover_url(result),
+        "spotify_url": get_spotify_url(result),
+        "youtube_url": get_youtube_search(artist, title),
+        "lyrics":      get_lyrics(artist, title),
+        "preview_url": get_deezer_preview(artist, title),
     }
 
 
 @app.route("/recognize", methods=["POST"])
 def api_recognize():
+    # Cek origin
+    if not check_origin():
+        return jsonify({"error": "Origin tidak diizinkan."}), 403
+
+    # Cek API key
+    if not check_api_key():
+        return jsonify({"error": "API key tidak valid atau tidak ditemukan."}), 401
+
     tmp_path = converted_path = None
     try:
         if "file" in request.files:
