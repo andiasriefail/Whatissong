@@ -18,8 +18,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 API_PORT    = int(os.environ.get("PORT", os.environ.get("API_PORT", 5000)))
-WEB_API_KEY = os.environ.get("WEB_API_KEY", "")
-
 AUDD_API_KEYS = [
     os.environ.get("AUDD_API_KEY_1", ""),
     os.environ.get("AUDD_API_KEY_2", ""),
@@ -38,10 +36,11 @@ ALLOWED_ORIGINS = [
     "https://wuhavers.com",
     "https://www.wuhavers.com",
     "https://wuhavers.pages.dev",
+    "https://whatissong.onrender.com",
 ]
 
 app = Flask(__name__)
-CORS(app, origins=ALLOWED_ORIGINS, allow_headers=["Content-Type", "X-API-Key"], methods=["GET", "POST", "OPTIONS"])
+CORS(app, origins=ALLOWED_ORIGINS, allow_headers=["Content-Type"], methods=["GET", "POST", "OPTIONS"])
 
 
 def is_unsupported_url(url):
@@ -145,21 +144,9 @@ def build_result_payload(result):
     }
 
 
-def check_api_key():
-    if not WEB_API_KEY:
-        return None
-    key = request.headers.get("X-API-Key", "") or request.form.get("api_key", "")
-    if key != WEB_API_KEY:
-        return jsonify({"error": "Unauthorized. Invalid or missing API key."}), 401
-    return None
-
 
 @app.route("/recognize", methods=["POST"])
 def api_recognize():
-    err = check_api_key()
-    if err:
-        return err
-
     tmp_path = converted_path = None
     try:
         if "file" in request.files:
