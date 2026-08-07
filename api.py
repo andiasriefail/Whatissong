@@ -129,20 +129,34 @@ def get_lyrics(artist, title):
     return None
 
 
+def get_deezer_preview(artist, title):
+    try:
+        query = requests.utils.quote(f"{artist} {title}")
+        resp = requests.get(f"https://api.deezer.com/search?q={query}&limit=1", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            tracks = data.get("data", [])
+            if tracks:
+                return tracks[0].get("preview")
+    except:
+        pass
+    return None
+
+
 def build_result_payload(result):
     title  = result.get("title", "Unknown")
     artist = result.get("artist", "Unknown")
     album  = result.get("album", "")
     return {
-        "title":       title,
-        "artist":      artist,
-        "album":       album,
-        "cover_url":   get_cover_url(result),
-        "spotify_url": get_spotify_url(result),
-        "youtube_url": get_youtube_search(artist, title),
-        "lyrics":      get_lyrics(artist, title),
+        "title":        title,
+        "artist":       artist,
+        "album":        album,
+        "cover_url":    get_cover_url(result),
+        "spotify_url":  get_spotify_url(result),
+        "youtube_url":  get_youtube_search(artist, title),
+        "lyrics":       get_lyrics(artist, title),
+        "preview_url":  get_deezer_preview(artist, title),
     }
-
 
 
 @app.route("/recognize", methods=["POST"])
@@ -214,8 +228,6 @@ def health():
     })
 
 
-
-# ── Serve static frontend ──
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "public")
 
 @app.route("/", methods=["GET"])
