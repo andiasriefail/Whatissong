@@ -502,17 +502,16 @@ def main():
     logger.info(f"[STARTUP] AUDD keys terdaftar: {len(AUDD_API_KEYS)}")
     check_ffmpeg()
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    async def _fetch_username():
+    async def post_init(application):
+        """Dipanggil otomatis oleh PTB setelah bot siap — aman di semua thread."""
         global BOT_USERNAME
-        bot_info = await app.bot.get_me()
+        bot_info = await application.bot.get_me()
         BOT_USERNAME = bot_info.username
         logger.info(f"[STARTUP] Bot username: @{BOT_USERNAME}")
         logger.info(f"[STARTUP] Bot name: {bot_info.first_name}")
         logger.info(f"[STARTUP] Bot ID: {bot_info.id}")
 
-    asyncio.get_event_loop().run_until_complete(_fetch_username())
+    app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_audio))
