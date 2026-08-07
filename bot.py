@@ -272,7 +272,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 🔗 URL to an audio/video file\n\n"
         "I'll find the title, artist, lyrics, and links to Spotify & YouTube!\n\n"
         "📌 *In groups/channels* — mention me or reply to my message along with the audio/URL.\n\n"
-        "⚠️ _YouTube & Twitch links are not supported._",
+        "⚠️ _YouTube & Twitch links are not supported._\n"
+        "⚠️ _DJ remixes or mashups may not be recognized._",
         parse_mode="Markdown",
     )
 
