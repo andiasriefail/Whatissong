@@ -240,37 +240,6 @@
       color: var(--muted);
     }
 
-    /* ── API key ── */
-    .api-key-wrap {
-      margin-top: 18px;
-    }
-    .api-key-label {
-      display: block;
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-    .api-key-row {
-      display: flex;
-      gap: 8px;
-    }
-    .api-key-row input {
-      flex: 1;
-      padding: 10px 14px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 0.85rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .api-key-row input::placeholder { color: var(--muted); }
-    .api-key-row input:focus { border-color: var(--accent); }
-
     /* ── Button ── */
     .btn {
       width: 100%;
@@ -484,7 +453,7 @@
     <header>
       <div class="logo">What Song Is This?</div>
       <div class="tagline">Drop an audio file or paste a link — get the song in seconds.</div>
-      <a class="tg-link" href="https://t.me/whatissongbot" target="_blank" rel="noopener">
+      <a class="tg-link" href="https://t.me/WhatSongLyricsIsThis_bot" target="_blank" rel="noopener">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
         </svg>
@@ -517,13 +486,6 @@
           <div class="wave-bar"></div><div class="wave-bar"></div>
         </div>
 
-        <div class="api-key-wrap">
-          <span class="api-key-label">API Key</span>
-          <div class="api-key-row">
-            <input type="password" id="apiKeyFile" placeholder="Enter your API key…" autocomplete="off" />
-          </div>
-        </div>
-
         <button class="btn" id="btnFile">Identify Song</button>
         <div class="status" id="statusFile">
           <div class="spinner"></div>
@@ -546,13 +508,6 @@
           <div class="wave-bar"></div><div class="wave-bar"></div>
           <div class="wave-bar"></div><div class="wave-bar"></div>
           <div class="wave-bar"></div><div class="wave-bar"></div>
-        </div>
-
-        <div class="api-key-wrap">
-          <span class="api-key-label">API Key</span>
-          <div class="api-key-row">
-            <input type="password" id="apiKeyUrl" placeholder="Enter your API key…" autocomplete="off" />
-          </div>
         </div>
 
         <button class="btn" id="btnUrl">Identify Song</button>
@@ -588,7 +543,7 @@
 
     <footer>
       Powered by <a href="https://audd.io" target="_blank" rel="noopener">AudD</a> ·
-      <a href="https://t.me/whatissongbot" target="_blank" rel="noopener">Telegram Bot</a>
+      <a href="https://t.me/WhatSongLyricsIsThis_bot" target="_blank" rel="noopener">Telegram Bot</a>
     </footer>
   </div>
 
@@ -709,7 +664,6 @@
 
     // ── File submission ──
     document.getElementById('btnFile').addEventListener('click', async () => {
-      const apiKey = document.getElementById('apiKeyFile').value.trim();
       if (!selectedFile) { showError('errorFile', 'statusFile', 'Please select an audio file first.'); return; }
 
       const btn = document.getElementById('btnFile');
@@ -721,10 +675,7 @@
         const form = new FormData();
         form.append('file', selectedFile);
 
-        const headers = {};
-        if (apiKey) headers['X-API-Key'] = apiKey;
-
-        const res = await fetch(`${API_BASE}/recognize`, { method: 'POST', headers, body: form });
+        const res = await fetch(`${API_BASE}/recognize`, { method: 'POST', body: form });
         const data = await res.json();
 
         if (!res.ok) { throw new Error(data.error || `Error ${res.status}`); }
@@ -740,8 +691,7 @@
 
     // ── URL submission ──
     document.getElementById('btnUrl').addEventListener('click', async () => {
-      const url    = document.getElementById('urlInput').value.trim();
-      const apiKey = document.getElementById('apiKeyUrl').value.trim();
+      const url = document.getElementById('urlInput').value.trim();
       if (!url) { showError('errorUrl', 'statusUrl', 'Please enter a URL.'); return; }
 
       const btn = document.getElementById('btnUrl');
@@ -750,10 +700,8 @@
       setWave('waveformUrl', true);
 
       try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (apiKey) headers['X-API-Key'] = apiKey;
-
         const res = await fetch(`${API_BASE}/recognize`, {
+          headers: { 'Content-Type': 'application/json' },
           method: 'POST',
           headers,
           body: JSON.stringify({ url }),
